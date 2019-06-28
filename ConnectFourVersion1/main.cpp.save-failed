@@ -1,0 +1,462 @@
+#include <iostream>
+#include <cstdlib>
+#include <allegro.h>
+#include <fstream>
+#include <algorithm>
+
+using namespace std;
+
+BITMAP *buffer;
+BITMAP *monedabmp;
+BITMAP *moneda;
+BITMAP *ladrillo;
+BITMAP *trofeo;
+BITMAP *bala;
+
+
+//Posicion inicial de la moneda
+int direccion = 0; // moneda
+int direccion_bala;
+int pos_x = 30*15;
+int pos_y = 3*30;
+
+int anterior_pos_x;
+int anterior_pos_y;
+
+
+//estado del jugador
+bool vida = true;
+
+//mapa
+int const ancho = 21; // juego
+int const alto = 31; // juego
+
+//señal
+
+int pos_b_x; //  moneda
+int pos_b_y; //   moneda
+int origen_b_x;  // moneda
+int origen_b_y;  // moneda
+
+class Juego{
+
+public:
+    static Juego *getInstancia(){
+            if(instancia == 0)
+                instancia = new Juego();
+            return instancia;
+        }
+    void crearMapa();
+    bool finJuego();
+    void imprimirSprite();
+    void Inicializar();
+
+protected:
+
+       char mapa[ancho][alto]={
+       "                           o",
+       "                            ",
+       "                            ",
+       "                            ",
+       "                            ",
+       "      FFFFFFFFFFFFFFFFF     ",
+       "      FFFFFFFFFFFFFFFFF     ",
+       "      MM M M M M M M MM     ",
+       "      MMFMFMFMFMFMFMFMM     ",
+       "      MM M M M M M M MM     ",
+       "      MMFMFMFMFMFMFMFMM     ",
+       "      MM M M M M M M MM     ",
+       "      MMFMFMFMFMFMFMFMM     ",
+       "      MM M M M M M M MM     ",
+       "      MMFMFMFMFMFMFMFMM     ",
+       "      MM M M M M M M MM     ",
+       "      MMFMFMFMFMFMFMFMM     ",
+       "      MM M M M M M M MM     ",
+       "      MMMMMMMMMMMMMMMMM     ",
+       "      MMMMMMMMMMMMMMMMM     ",
+       "                            ",
+    };
+
+    private:
+        static Juego *instancia;
+};
+
+void Juego::crearMapa()
+{
+   for(int fila = 0; fila < ancho; fila++)
+    {
+        for(int columna = 0; columna < alto; columna++)
+        {
+            if(mapa[fila][columna] == 'M')
+            {
+                draw_sprite(buffer, ladrillo, columna*30, fila*30);
+            }
+              else if(mapa[fila][columna] == 'F')
+            {
+                draw_sprite(buffer,ladrillo, columna*30, fila*30);
+            }
+            else if(mapa[fila][columna] == 'o')
+            {
+                draw_sprite(buffer, trofeo, columna*30, fila*30);
+            }
+        }
+   }
+}
+
+
+bool Juego::finJuego()
+{
+   for(int fila = 0; fila < ancho; fila++)
+    {
+        for(int columna = 0; columna < alto; columna++)
+        {
+            if(mapa[fila][columna] == 'o')
+            {
+                return true;
+            }
+        }
+   }
+   return false;
+}
+
+
+void Juego::imprimirSprite()
+{
+   blit(buffer, screen, 0,0,0,0,880,630);
+}
+
+void Juego::Inicializar()
+{
+    buffer = create_bitmap(880, 630);
+    ladrillo = load_bitmap("bloqueA.bmp",NULL);
+    monedabmp = load_bitmap("black.bmp",NULL);
+    moneda = create_bitmap(33, 33);
+    trofeo = load_bitmap("fondo.bmp",NULL);
+    bala = load_bitmap("fichaRoja.bmp",NULL);
+}
+
+class Sprite
+{
+    public:
+        virtual void CrearSprite() = 0;
+};
+
+class Ficha: public Sprite, public Juego
+{
+    public:
+        Ficha();
+        Ficha(int, int);
+        ~Ficha();
+        void CrearSprite();
+        /*void Colision();
+        void movimientoEnemigo();*/
+
+
+
+    private:
+        BITMAP *fichabmp;
+        BITMAP *ficha;
+        BITMAP *fichabmp2;
+        BITMAP *ficha2;
+        //pos enemigo
+        //int direccion_ficha = 0;
+        int pos_x_e = 30*14;
+        int pos_y_e = 30*15;
+        /*int anterior_pos_x_e;
+        int anterior_pos_y_e;*/
+};
+
+Ficha::Ficha()
+{
+    pos_x_e = 30*14;
+    pos_y_e = 30*8;
+    //direccion_enemigo = rand()%4;
+    ficha = create_bitmap(30, 30);
+    fichabmp = load_bitmap("fichaAmarilla.bmp",NULL);
+    /*ficha2 = create_bitmap(30, 30);
+    fichabmp2 = load_bitmap("richaAmarilla.bmp",NULL);*/
+}
+
+
+Ficha::Ficha(int x, int y)
+{
+    pos_x_e = x;
+    pos_y_e = y;
+//    direccion_enemigo = rand()%4;
+        ficha = create_bitmap(30, 30);
+    fichabmp = load_bitmap("fichaAmarilla.bmp",NULL);
+    /*ficha2 = create_bitmap(30, 30);
+    fichabmp2 = load_bitmap("fichaAmarilla.bmp",NULL);*/
+}
+Ficha::~Ficha(){
+    delete ficha;
+    //delete ficha2;
+}
+
+
+void Ficha::CrearSprite()
+{
+    blit(fichabmp, ficha, 0,0,0,0,30,30);
+    draw_sprite(buffer, ficha, pos_x_e, pos_y_e);
+     /*blit(fichabmp2, ficha2, 0,0,0,0,30,30);
+    draw_sprite(buffer, ficha, pos_x_e, pos_y_e);*/
+}
+
+
+
+
+class Moneda: public Sprite, public Juego
+{
+    public:
+        bool activo;
+        void CrearSprite();
+        void direccionamiento(int &, int &, int &);
+
+};
+
+void Moneda::direccionamiento(int &direccion, int &pos_x, int &pos_y){
+
+       if(key[KEY_LEFT]){
+           direccion = direccion_bala = 0;
+            activo = true;
+        }
+       else if(key[KEY_RIGHT]){
+           direccion = direccion_bala = 1;
+            activo = true;
+        }
+       else if(key[KEY_UP]){
+           direccion = direccion_bala = 2;
+            activo = true;
+        }
+       else if(key[KEY_DOWN]){
+           direccion =direccion_bala =  3;
+            activo = true;
+        }
+           if(direccion == 0 && activo == true){
+                 if((mapa[pos_y/30][(pos_x-30)/30] != 'M')){
+                   pos_x -= 30;
+                   activo = false;
+                }
+                else
+                    direccion = 1;
+           }
+
+           if(direccion == 1 && activo == true){
+                if((mapa[pos_y/30][(pos_x+30)/30] != 'M')){
+                   pos_x += 30;
+                    activo = false;
+                }
+                else
+                    direccion = 2;
+           }
+
+           if(direccion == 2 && activo == true){
+                if((mapa[(pos_y-30)/30][pos_x/30] != 'M')){
+                  pos_y -= 30;
+                  activo = false;
+                }
+                else
+                    direccion = 3;
+           }
+
+           if(direccion == 3 && activo == true){
+                if((mapa[(pos_y+30)/30][pos_x/30] != 'M')){
+                   pos_y += 30;
+                   activo = false;
+                }
+                else
+                    direccion = 3;
+           }
+}
+
+void Moneda::CrearSprite()
+{
+    blit(monedabmp, moneda, direccion*33,0,0,0,33,33);
+    draw_sprite(buffer, moneda, pos_x, pos_y);
+}
+
+class Bala: public  Sprite, public Juego{
+    public:
+        int x, y;
+        int dx, dy;
+        Ficha::Ficha(int x, int y);
+        void disparo(int &, int&,int );
+        void CrearSprite();
+
+};
+
+Ficha::Ficha(int x, int y)
+{
+    pos_x_e = x;
+    pos_y_e = y;
+    //ficha = create_bitmap(30, 30);
+    fichabmp = load_bitmap("fichaAmarilla.bmp",NULL);
+
+}
+
+const int maxdisp = 20;
+Bala disparos[maxdisp];
+
+
+
+
+void Bala::disparo(int &pos_b_x, int &pos_b_y,int direccion)
+{
+    int contador=0;
+    int contt = 0;
+    if(key[KEY_SPACE] )
+       {
+        if(contador < maxdisp)
+        {
+         contador++;
+         disparos[contador].x = pos_b_x +20;
+         disparos[contador].y = pos_b_y;
+         disparos[contador].dx = 0;
+         disparos[contador].dy = -3;
+
+        }
+       }
+
+       if(contt++ >maxdisp){
+            contt=0;
+       }
+
+       if(contador > 0)
+       {
+        for(int cont = 1; cont <= contador; cont++)
+        {
+         disparos[cont].x += disparos[cont].dx;
+         disparos[cont].y += disparos[cont].dy;
+
+         //draw_sprite(buffer, bala, pos_b_x, pos_b_y);
+        }
+        }
+}
+void Bala::CrearSprite()
+{
+    //draw_sprite(buffer, bala, pos_b_x, pos_b_y);
+    //masked_blit(bala, buffer, 0, 0,pos_b_x ,pos_b_y, 30, 30);
+    blit(fichabmp, buffer, 0,0,pos_x_e,pos_y_e,30,30);
+}
+
+Juego *Juego::instancia = 0;
+
+int main()
+{
+
+    allegro_init();
+	install_keyboard();
+	install_mouse();
+
+	set_color_depth(32);
+	set_gfx_mode(GFX_AUTODETECT_WINDOWED, 880, 630, 0, 0);
+
+
+	Juego *configuracion = Juego::getInstancia();
+    configuracion->Inicializar();
+
+
+    /*Ficha *A = new Ficha(30*13, 30*5);
+    Ficha *B = new Ficha(30*14, 30*5);
+    Ficha *C = new Ficha(30*15, 30*5);
+    Ficha *D = new Ficha(30*16, 30*5);
+    Ficha *E = new Ficha;
+    Ficha *F = new Ficha;
+    Ficha *G = new Ficha;
+    Ficha *H = new Ficha;
+    Ficha *I = new Ficha;
+    Ficha *J = new Ficha;
+
+    Ficha *arr[]={A,B,C,D,E,F,G,H,I,J};
+
+    A->CrearSprite();*/
+
+    Moneda *tan = new Moneda;
+    Bala *balin = new Bala;
+    bool nivel1 = true;
+
+	BITMAP *buffer2 = create_bitmap(880, 630);
+	BITMAP *fondo1;
+	BITMAP *fondo2;
+	BITMAP *fondo3;
+	BITMAP *cursor;
+
+
+	fondo1 = load_bitmap("menu1a.bmp",NULL);
+	fondo2 = load_bitmap("menu2a.bmp",NULL);
+	fondo3 = load_bitmap("menu3a.bmp",NULL);
+	cursor = load_bitmap("cursor.bmp",NULL);
+
+    bool salida = false;
+
+	while ( !salida )
+	{
+         // posicion del boton
+         if ( mouse_x > 480 && mouse_x < 530 &&
+              mouse_y > 200 && mouse_y < 350)
+         {
+            blit(fondo2, buffer2, 0, 0, 0, 0, 880, 630);
+
+            // si presionas el click izquierdo
+            if ( mouse_b & 1 )
+            {
+                salida=true;
+            }
+         }
+
+         else if ( mouse_x > 377 && mouse_x < 530 &&
+              mouse_y > 430 && mouse_y < 471)
+         {
+            blit(fondo3, buffer2, 0, 0, 0, 0, 880, 630);
+
+            // se ha pulsado el boton del raton
+            if ( mouse_b & 1 )
+            {
+                allegro_exit();
+            }
+         }else{
+            blit(fondo1, buffer2, 0, 0, 0, 0, 880, 630);
+         }
+
+
+
+         masked_blit(cursor, buffer2, 0, 0, mouse_x, mouse_y, 13,22);
+
+
+	     blit(buffer2, screen, 0, 0, 0, 0, 880, 630);
+
+    }
+
+
+	clear(buffer2);
+	clear(fondo1);
+	clear(fondo2);
+	clear(fondo3);
+	clear(cursor);
+
+    while(!key[KEY_ESC] && configuracion->finJuego() && vida && nivel1){
+
+       anterior_pos_x = pos_x;
+       anterior_pos_y = pos_y;
+
+       tan->direccionamiento(direccion, pos_x, pos_y);
+       balin->disparo(pos_b_x, pos_b_y,direccion_bala);
+
+
+       clear(buffer);
+	   configuracion->crearMapa();
+	   tan->CrearSprite();
+	   balin->CrearSprite();
+
+	   configuracion->imprimirSprite();
+	   rest(20);
+
+	   clear(moneda);
+       configuracion->imprimirSprite();
+       rest(70);
+
+ }
+    allegro_exit();
+	return 0;
+}
+END_OF_MAIN();

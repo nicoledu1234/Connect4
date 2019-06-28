@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+1561508737 source:c:\users\nicole\documents\proyecto final ccomp 1 connect four\connectfourversion1\main.cpp
+	<iostream>
+	<cstdlib>
+	<allegro.h>
+	<fstream>
+	<algorithm>
+
